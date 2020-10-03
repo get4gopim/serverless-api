@@ -30,3 +30,11 @@ class FuelInfo:
 
     def __str__(self):
         return "FuelInfo: [date: " + str(self.__date) + ", petrol: " + str(self.__petrol) + ", diesel: " + str(self.__diesel) + ", lastUpdated: " + str(self.__last_updated_time) + "]"
+
+    def serialize(self):
+        return {
+            'date': self.__date,
+            'petrol': self.__petrol,
+            'diesel': self.__diesel,
+            'lastUpdated': self.__last_updated_time
+        }

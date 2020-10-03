@@ -40,4 +40,15 @@ class RateInfo:
         return self.__last_updated_time
 
     def __str__(self):
-        return "RateInfo: [date: " + str(self.__date) + ", gold22: " + str(self.__gold22) + ", gold24: " + str(self.__gold24) + ", silver: " + str(self.__silver) + ", lastUpdated: " + str(self.__last_updated_time) + "]"
+        return "RateInfo: [date: " + str(self.__date) + ", gold22: " + str(self.__gold22) \
+               + ", gold24: " + str(self.__gold24) + ", silver: " + str(self.__silver) \
+               + ", lastUpdated: " + str(self.__last_updated_time) + "]"
+
+    def serialize(self):
+        return {
+            'date': self.__date,
+            'gold22': self.__gold22,
+            'gold24': self.__gold24,
+            'silver': self.__silver,
+            'lastUpdated': self.__last_updated_time
+        }

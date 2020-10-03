@@ -30,6 +30,20 @@ def api_forecast(location):
     return jsonify(serialized_list)
 
 
+# A route to return current gold rate in [chennai]
+@app.route('/api/v1/gold', methods=['GET'])
+def api_gold():
+    info = HtmlParser2.call_gold_api()
+    return jsonify(info.serialize())
+
+
+# A route to return current fuel rate in [chennai]
+@app.route('/api/v1/fuel', methods=['GET'])
+def api_fuel():
+    info = HtmlParser2.call_fuel_api()
+    return jsonify(info.serialize())
+
+
 @app.route('/', methods=['GET'])
 def home():
     return "<h1>Weather Forecast API Running</h1>"

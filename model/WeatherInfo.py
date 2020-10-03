@@ -58,5 +58,5 @@ class WeatherInfo:
             'humidity': self.__humidity,
             'condition': self.__condition,
             'asof': self.__asof,
-            'preciption': self.__preciption,
+            'preciption': self.__preciption
         }

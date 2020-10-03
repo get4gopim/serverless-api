@@ -5,8 +5,6 @@ import logging
 import os
 import asyncio
 import sys
-import lxml
-from queue import Queue
 
 import async_timeout
 import time
@@ -211,7 +209,7 @@ async def get_google_weather(future, location):
 
 
 async def parse_google_weather(page_content):
-    soup = BeautifulSoup(page_content, 'lxml')
+    soup = BeautifulSoup(page_content, 'html.parser')
 
     seg_temp = soup.find_all('div', {'id': 'wob_wc'})[0]
     # print(seg_temp.text)
@@ -267,7 +265,7 @@ async def parse_google_weather(page_content):
 
 
 async def parse_weather(page_content):
-    soup = BeautifulSoup(page_content, 'lxml') # html.parser # lxml # html5lib
+    soup = BeautifulSoup(page_content, 'html.parser') # html.parser # lxml # html5lib
 
     seg_temp = soup.find_all('div', {'id' : 'WxuCurrentConditions-main-b3094163-ef75-4558-8d9a-e35e6b9b1034'})[0]
     # print(seg_temp.text)
@@ -351,7 +349,7 @@ async def parse_weather(page_content):
 
 
 async def parse_google_forecast(page_content):
-    soup = BeautifulSoup(page_content, 'lxml') # html.parser # lxml # html5lib
+    soup = BeautifulSoup(page_content, 'html.parser') # html.parser # lxml # html5lib
 
     seg_temp = soup.find_all('div', {'id': 'wob_wc'})[0]
     # seg_temp = soup.find_all('div#wob_wc')
@@ -396,7 +394,7 @@ async def parse_google_forecast(page_content):
 
 
 async def parse_weather_forecast(page_content):
-    soup = BeautifulSoup(page_content, 'lxml') # html.parser # lxml # html5lib
+    soup = BeautifulSoup(page_content, 'html.parser') # html.parser # lxml # html5lib
 
     seg_temp = soup.find_all('div', {'id' : 'WxuDailyWeatherCard-main-bb1a17e7-dc20-421a-b1b8-c117308c6626'})[0]
     # print(seg_temp.text)
@@ -454,7 +452,7 @@ async def parse_weather_forecast(page_content):
 
 
 async def parse_gold_info(page_content):
-    soup = BeautifulSoup(page_content, 'lxml')
+    soup = BeautifulSoup(page_content, 'html.parser')
 
     table = soup.select('table.table-price').__getitem__(1)
     rows = table.find_all('tr')
@@ -489,7 +487,7 @@ async def parse_gold_info(page_content):
 
 
 async def parse_fuel_info(page_content):
-    soup = BeautifulSoup(page_content, 'lxml')
+    soup = BeautifulSoup(page_content, 'html.parser')
 
     table = soup.select("table#BC_GridView1").__getitem__(0)
     # print (table)
@@ -570,10 +568,6 @@ def call_weather_api(location):
     f1.add_done_callback(callback)
 
     tasks = []
-    # tasks.append(get_google_forecast(f1, location))
-    # tasks.append(get_google_weather(f1, location))
-    # tasks.append(get_weather(f1, location))
-    # tasks.append(get_weather_forecast(f1, location))
 
     if util.is_uuid(location):
         tasks.append(get_weather(f1, location))
@@ -622,24 +616,32 @@ def call_gold_api():
     loop.run_until_complete(asyncio.wait(tasks))
 
     loop.close()
-    print()
+
+    return f1.result()
 
 
-def worker_main():
-    while True:
-        try:
-            job_func, job_args = jobqueue.get()
-            job_func(*job_args)
-            jobqueue.task_done()
-        except BaseException as e:
-            print(e)
-            LOGGER.error(f'worker_main : {repr(e)}')
+def call_fuel_api():
+    LOGGER.info("call_fuel_api")
 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-jobqueue = Queue()
+    f1 = asyncio.Future()
+
+    f1.add_done_callback(callback)
+
+    tasks = [get_fuel_price(f1)]
+    loop.run_until_complete(asyncio.wait(tasks))
+
+    loop.close()
+
+    return f1.result()
+
 
 if __name__ == '__main__':
     LOGGER.info (f"Parser starts ... args: {len(sys.argv)}")
 
-    call_weather_api('thalambur')
-    # call_weather_api('4ef51d4289943c7792cbe77dee741bff9216f591eed796d7a5d598c38828957d')
+    call_weather_api('thalambur') # thalambur
+    call_weather_forecast('4ef51d4289943c7792cbe77dee741bff9216f591eed796d7a5d598c38828957d')
+    call_fuel_api()
+    call_gold_api()

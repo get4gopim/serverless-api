@@ -48,5 +48,5 @@ class WeatherForecast:
             'humidity': self.__humidity,
             'condition': self.__condition,
             'low': self.__low,
-            'preciption': self.__preciption,
+            'preciption': self.__preciption
         }
