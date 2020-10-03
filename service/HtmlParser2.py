@@ -5,13 +5,12 @@ import logging
 import os
 import asyncio
 import sys
-import threading
+import lxml
 from queue import Queue
 
 import async_timeout
 import time
 import aiohttp
-import schedule
 
 from model import FuelInfo, RateInfo, WeatherInfo, WeatherForecast
 from utility import util
