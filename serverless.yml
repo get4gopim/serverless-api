@@ -18,10 +18,16 @@ provider:
   runtime: python3.7
   stage: dev
   region: ap-south-1
+  apiGateway:
+    shouldStartNameWithService: true
 
 functions:
   app:
     handler: wsgi_handler.handler
     events:
-      - http: ANY /
-      - http: 'ANY {proxy+}'
+      - http:
+          path: /api/v1/weather/{location}
+          method: get
+      - http:
+          path: /api/v1/weather/{location}/forecast
+          method: get

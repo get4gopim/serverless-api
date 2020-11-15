@@ -24,6 +24,8 @@ google_weather_url = 'https://www.google.com/search?q=weather'
 default_location = 'chennai'
 DEFAULT_LOC_UUID = '4ef51d4289943c7792cbe77dee741bff9216f591eed796d7a5d598c38828957d'
 
+accu_weather = 'https://www.accuweather.com/en/in/kancheepuram/190796/current-weather/190796'
+
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"), format='%(asctime)s %(message)s')
 LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +44,101 @@ async def fetch(session, url):
     except asyncio.TimeoutError as ex:
         LOGGER.error(f'Unable to connect remote API : {url} - {repr(ex)}')
         raise ex
+
+
+async def parse_accu_weather(page_content):
+    soup = BeautifulSoup(page_content, 'html.parser')
+
+    seg_temp = soup.find_all('div', class_='template-root')[0]
+    location = seg_temp.find('div', class_='header-inner')
+    location = location.find('h1', class_='header-loc')
+    print(location.text)
+
+    temp = seg_temp.find('span', class_='header-temp')
+    print(temp.text)
+
+    seg_temp = soup.find_all('div', class_ = 'two-column-page-content')[0]
+    # print(seg_temp.text)
+
+    seg_temp = seg_temp.find('div', class_='page-column-1')
+    content_module = seg_temp.find('div', class_='content-module')
+    curr_weather_card = content_module.find('div', class_='current-weather-card')
+    card_header = curr_weather_card.find('div', class_='card-header')
+    # print(card_header)
+    as_of = card_header.find('p')
+    print (as_of.text)
+
+    card_content = curr_weather_card.find('div', class_='card-content')
+    # print(card_content.text)
+
+    disp_temp = card_content.find('div', class_='display-temp')
+    print(disp_temp.text)
+
+    condition = curr_weather_card.find('div', class_='phrase')
+    print(condition.text)
+
+    curr_weather_details = curr_weather_card.find('div', class_='current-weather-details')
+    left = curr_weather_details.find('div', class_='left')
+    item_content = left.find_all('div', class_='detail-item')[2]
+    humidity = item_content.find_all('div')[1]
+    print(humidity.text)
+
+    high = low = temp
+    half_day_card = content_module.find('div', class_='half-day-card')
+
+    # half_day_card_header = half_day_card.find('div', class_='half-day-card-header')
+    # real_feel = half_day_card_header.find('div', class_='real-feel')
+    # high = real_feel.find_all('div')[0]
+    # # print(high.text)
+    # # high = util.get_str_after(high, 'RealFeel')
+    # low = real_feel.find_all('div')[1]
+    # # print(high.text + '; ' + low.text)
+
+
+    half_day_card_content = half_day_card.find('div', class_='half-day-card-content')
+    print(half_day_card_content)
+    left = half_day_card_content.find('div', class_='left')
+    item_content = left.find_all('p')[2]
+    precipitation = item_content.find('span')
+    print(precipitation.text)
+
+    weatherInfo = WeatherInfo.WeatherInfo(temp.text, low.text, high.text, as_of.text, condition.text, location.text, precipitation.text)
+    weatherInfo.set_humidity(humidity.text)
+    weatherInfo.set_error(None)
+
+    LOGGER.info(str(weatherInfo))
+
+    return weatherInfo
+
+
+async def get_weather_accu(future, location):
+    start = time.time()
+
+    url = accu_weather
+
+    info = None
+    LOGGER.info(url)
+
+    try:
+        async with ClientSession(connector=TCPConnector(ssl=False)) as session:
+            html = await fetch(session, url)
+            LOGGER.info(f'accu weather content fetch in {time.time() - start} secs.')
+            parse_start = time.time()
+            info = await parse_accu_weather(html)
+            LOGGER.info(f'accu weather parsing took {time.time() - parse_start} secs.')
+    except ClientConnectorError as ex:
+        LOGGER.error(f'Unable to connect Accu Weather API : {repr(ex)}')
+        LOGGER.error(ex)
+        info = WeatherInfo.WeatherInfo('0', "0", "0", "00:00", "", "", "")
+        info.set_error(ex)
+    except BaseException as ex:
+        LOGGER.error(f'Unable to connect Accu Weather API :- {repr(ex)}')
+        LOGGER.error(ex)
+        info = WeatherInfo.WeatherInfo('0', "0", "0", "00:00", "", "", "")
+        info.set_error(ex)
+
+    LOGGER.info (f'Accu Weather Time Taken {time.time() - start}')
+    future.set_result(info)
 
 
 async def get_weather(future, location):
@@ -227,16 +324,22 @@ async def parse_google_weather(page_content):
 
     element = span.select('span#wob_dc')[0]
     condition = element.text
+    # print(condition)
 
     div_sub = seg_temp.select('div#wob_d')[0]   # Second Segment
 
     element = div_sub.select('span#wob_tm')[0]
     temp = element.text
+    # print(temp)
 
-    div_sub = seg_temp.find_all('div', class_='vk_gy vk_sh')[1] # Second Sub
+    div_sub = seg_temp.find_all('div', class_='vk_gy vk_sh')[0] # Second Sub
+    # print(div_sub)
 
     element = div_sub.select('span#wob_hm')[0]
-    humidity = element.text
+    humidity = '0'
+    if element is not None:
+        humidity = element.text
+    # print(humidity)
 
     element = div_sub.select('span#wob_pp')[0]
     precipitation = element.text
@@ -282,12 +385,16 @@ async def parse_weather(page_content):
     if idx > 0:
         location = location[0:idx]
 
+    # print(location)
+
     as_of = div_ele.find('div')
     as_of = as_of.text
     idx = util.index_of(as_of, "as of ")
     idx_ist = util.index_of(as_of, " IST")
     if idx > 0:
         as_of = as_of[idx+6:idx_ist]
+
+    # print(as_of)
 
     div_ele = seg_temp.find_all('div', recursive=False)[1]
     # print(div_ele)
@@ -300,6 +407,8 @@ async def parse_weather(page_content):
 
     element = div_cond.find('div')
     condition = element.text
+
+    # print(condition)
 
     div_cond = div_ele.find_all('div', recursive=False)[1]
     div_cond = div_cond.find_all('div', recursive=False)[0]
@@ -317,12 +426,15 @@ async def parse_weather(page_content):
     if len(low) == 3:
         low = low[0:2]
 
-    preciption = seg_temp.find_all('div', recursive=False)[2]
-    # print(preciption)
-    if preciption is not None:
-        preciption = preciption.text
-    else:
-        preciption = ''
+    # print(high + " : " + low)
+
+    preciption = ''
+    div_percip = seg_temp.find_all('div', recursive=False)
+    # print(len(div_percip))
+    if len(div_percip) > 2:
+        div_percip = div_percip[2]
+        if div_percip is not None:
+            preciption = div_percip.text
 
     seg_temp = soup.find_all('div', {'id': 'todayDetails'})
     # seg_temp = soup.find_all('div', {'id': 'WxuTodayDetails-main-fd88de85-7aa1-455f-832a-eacb037c140a'})
@@ -638,10 +750,29 @@ def call_fuel_api():
     return f1.result()
 
 
+def call_weather_accu(location):
+    LOGGER.info("call_weather_accu")
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    f1 = asyncio.Future()
+
+    f1.add_done_callback(callback)
+
+    tasks = [get_weather_accu(f1, location)]
+    loop.run_until_complete(asyncio.wait(tasks))
+
+    loop.close()
+
+    return f1.result()
+
+
 if __name__ == '__main__':
     LOGGER.info (f"Parser starts ... args: {len(sys.argv)}")
 
-    call_weather_api('thalambur') # thalambur
-    call_weather_forecast('4ef51d4289943c7792cbe77dee741bff9216f591eed796d7a5d598c38828957d')
-    call_fuel_api()
-    call_gold_api()
+    #call_weather_accu('4ef51d4289943c7792cbe77dee741bff9216f591eed796d7a5d598c38828957d') # thalambur
+    # call_weather_forecast('thalambur')
+    call_weather_api('4ef51d4289943c7792cbe77dee741bff9216f591eed796d7a5d598c38828957d')
+    # call_fuel_api()
+    # call_gold_api()
