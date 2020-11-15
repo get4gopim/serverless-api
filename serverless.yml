@@ -26,8 +26,17 @@ functions:
     handler: wsgi_handler.handler
     events:
       - http:
+          path: /
+          method: get
+      - http:
           path: /api/v1/weather/{location}
           method: get
       - http:
           path: /api/v1/weather/{location}/forecast
+          method: get
+      - http:
+          path: /api/v1/gold
+          method: get
+      - http:
+          path: /api/v1/fuel
           method: get
