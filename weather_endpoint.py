@@ -44,6 +44,14 @@ def api_fuel():
     return jsonify(info.serialize())
 
 
+# A route to return current HDFC Bond fund growth
+@app.route('/api/v1/hdfcbond', methods=['GET'])
+def api_hdfc_bond():
+    LOGGER.info("hdfc bond fund growth api call")
+    info = HtmlParser2.call_hdfc_api()
+    return jsonify(info.serialize())
+
+
 @app.route('/', methods=['GET'])
 def home():
     return "<h1>Weather Forecast API Running</h1>"

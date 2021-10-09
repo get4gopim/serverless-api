@@ -10,8 +10,9 @@ import async_timeout
 import time
 import aiohttp
 
-from model import FuelInfo, RateInfo, WeatherInfo, WeatherForecast
+from model import FuelInfo, RateInfo, WeatherInfo, WeatherForecast, FundInfo
 from utility import util
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 from aiohttp import ClientSession, ClientConnectorError, TCPConnector
@@ -19,6 +20,7 @@ from aiohttp import ClientSession, ClientConnectorError, TCPConnector
 weather_url = 'https://weather.com/en-IN/weather/today/l/'
 gold_url = 'http://www.livechennai.com/gold_silverrate.asp'
 fuel_url = 'https://www.livechennai.com/petrol_price.asp'
+hdfc_bond_url = 'https://www.moneycontrol.com/mutual-funds/nav/hdfc-corporate-bond-fund/MHD686'
 
 google_weather_url = 'https://www.google.com/search?q=weather'
 default_location = 'chennai'
@@ -271,8 +273,32 @@ async def get_fuel_price(future):
         info = FuelInfo.FuelInfo('0', '0', "", "")
         info.set_error(ex)
     except BaseException as ex:
-        LOGGER.error(f'Unable to connect Weather API : {repr(ex)}')
+        LOGGER.error(f'Unable to connect Fuel API : {repr(ex)}')
         info = FuelInfo.FuelInfo('0', '0', "", "")
+        info.set_error(ex)
+
+    LOGGER.info(f'Fuel Time Taken {time.time() - start}')
+    future.set_result(info)
+
+
+async def get_hdfc_bond_price(future):
+    start = time.time()
+    info = None
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            html = await fetch(session, hdfc_bond_url)
+            LOGGER.info(f'hdfc content fetch in {time.time() - start} secs.')
+            parse_start = time.time()
+            info = await parse_hdfc_info(html)
+            LOGGER.info(f'hdfc parsing took {time.time() - parse_start} secs.')
+    except ClientConnectorError as ex:
+        LOGGER.error(f'Unable to connect hdfc API : {repr(ex)}')
+        info = FundInfo.FundInfo("", '0', '0', "", "")
+        info.set_error(ex)
+    except BaseException as ex:
+        LOGGER.error(f'Unable to connect hdfc API : {repr(ex)}')
+        info = FundInfo.FundInfo("", '0', '0', "", "")
         info.set_error(ex)
 
     LOGGER.info(f'Fuel Time Taken {time.time() - start}')
@@ -636,6 +662,57 @@ async def parse_fuel_info(page_content):
     return fuel_info
 
 
+async def parse_hdfc_info(page_content):
+    soup = BeautifulSoup(page_content, 'html.parser')
+
+    seg_temp = soup.find_all('div', class_='personal_financePg')[0]
+    # print(seg_temp)
+
+    print ('-------------------------------')
+
+    scheme = seg_temp.find_all('h1', class_='page_heading navdetails_heading')[0]
+    scheme = scheme.text
+
+    seg_temp = seg_temp.find_all('div', class_='leftblok')[0]
+    #print (seg_temp)
+
+    nav = seg_temp.find('span', class_='amt').text
+    if len(nav) > 0:
+        nav = nav[2:len(nav)]
+    print(nav)
+
+    purchase_value = '25.7522'
+
+    last_updated = seg_temp.find('div', class_='grayvalue').text
+    print(last_updated)
+
+    diff = float(nav) - float(purchase_value)
+    diff = "{:.4f}".format(diff)
+    print (diff)
+
+    last_updated = last_updated.replace("(as on ", "")
+    last_updated = last_updated.replace("th", "")
+    last_updated = last_updated.replace(",", "")
+    last_updated = last_updated.replace(")", "")
+    # last_updated = last_updated[len('(as on ') : len(last_updated)-1]
+    print(last_updated)
+
+    # datetime_object = datetime.strptime('Jun 1 2005  1:33PM', '%b %d %Y %I:%M%p')
+    datetime_object = datetime.strptime(last_updated, '%d %B %Y')
+    print(datetime_object)
+
+    last_updated = datetime_object.strftime("%d %b")
+
+    print(last_updated)
+
+    fuel_info = FundInfo.FundInfo(scheme, nav, purchase_value, diff, last_updated)
+    fuel_info.set_error(None)
+
+    LOGGER.info(str(fuel_info))
+
+    return fuel_info
+
+
 # Testing Methods
 def callback(future):
     print (future.result())
@@ -743,6 +820,24 @@ def call_fuel_api():
     f1.add_done_callback(callback)
 
     tasks = [get_fuel_price(f1)]
+    loop.run_until_complete(asyncio.wait(tasks))
+
+    loop.close()
+
+    return f1.result()
+
+
+def call_hdfc_api():
+    LOGGER.info("call_hdfc_api")
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    f1 = asyncio.Future()
+
+    f1.add_done_callback(callback)
+
+    tasks = [get_hdfc_bond_price(f1)]
     loop.run_until_complete(asyncio.wait(tasks))
 
     loop.close()

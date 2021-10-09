@@ -5,7 +5,6 @@ service: weather-api
 plugins:
   - serverless-python-requirements
   - serverless-wsgi
-
 custom:
   wsgi:
     app: weather_endpoint.app
@@ -15,7 +14,8 @@ custom:
 
 provider:
   name: aws
-  runtime: python3.7
+  runtime: python3.9
+  lambdaHashingVersion: 20201221
   stage: dev
   region: ap-south-1
   apiGateway:
@@ -39,4 +39,7 @@ functions:
           method: get
       - http:
           path: /api/v1/fuel
+          method: get
+      - http:
+          path: /api/v1/hdfcbond
           method: get
