@@ -20,7 +20,7 @@ from aiohttp import ClientSession, ClientConnectorError, TCPConnector
 weather_url = 'https://weather.com/en-IN/weather/today/l/'
 gold_url = 'http://www.livechennai.com/gold_silverrate.asp'
 fuel_url = 'https://www.livechennai.com/petrol_price.asp'
-hdfc_bond_url = 'https://www.moneycontrol.com/mutual-funds/nav/hdfc-corporate-bond-fund/MHD686'
+hdfc_bond_url = 'https://www.moneycontrol.com/mutual-funds/nav/quant-liquid-plan/MES016'
 
 google_weather_url = 'https://www.google.com/search?q=weather'
 default_location = 'chennai'
