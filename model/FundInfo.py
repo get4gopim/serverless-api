@@ -20,7 +20,7 @@ class FundInfo:
     def get_scheme(self):
         return self.__scheme
 
-    def get_petrol(self):
+    def get_nav(self):
         return self.__nav
 
     def get_purchase_value(self):

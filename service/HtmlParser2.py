@@ -672,6 +672,7 @@ async def parse_hdfc_info(page_content):
 
     scheme = seg_temp.find_all('h1', class_='page_heading navdetails_heading')[0]
     scheme = scheme.text
+    print(scheme)
 
     seg_temp = seg_temp.find_all('div', class_='leftblok')[0]
     #print (seg_temp)
@@ -692,6 +693,8 @@ async def parse_hdfc_info(page_content):
 
     last_updated = last_updated.replace("(as on ", "")
     last_updated = last_updated.replace("th", "")
+    last_updated = last_updated.replace("st", "")
+    last_updated = last_updated.replace("nd", "")
     last_updated = last_updated.replace(",", "")
     last_updated = last_updated.replace(")", "")
     # last_updated = last_updated[len('(as on ') : len(last_updated)-1]
