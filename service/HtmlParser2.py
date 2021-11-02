@@ -682,7 +682,7 @@ async def parse_hdfc_info(page_content):
         nav = nav[2:len(nav)]
     print(nav)
 
-    purchase_value = '25.7522'
+    purchase_value = '33.1363'
 
     last_updated = seg_temp.find('div', class_='grayvalue').text
     print(last_updated)
